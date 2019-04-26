@@ -1,5 +1,5 @@
 {
-  "name": "cotd",
+  "name": "bakked",
   "version": "0.0.3",
   "private": true,
   "devDependencies": {
@@ -16,6 +16,7 @@
     "react-router-dom": "^4.2.2",
     "react-transition-group": "^2.2.1",
     "serve": "^10.1.1",
+    "styled-components": "^4.2.0",
     "stylus": "0.54.5"
   },
   "scripts": {

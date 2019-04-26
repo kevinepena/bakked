@@ -3,9 +3,10 @@ import { BrowserRouter, Switch, Route } from 'react-router-dom';
 import firebase from 'firebase';
 import App from '../App';
 import Inventory from './Inventory';
-import base from '../base';
+import base, { firebaseApp } from '../base';
 import Login from './Login';
 import Nav from './Nav';
+import Footer from './Footer';
 
 
 
@@ -14,16 +15,42 @@ export default class RouterComp extends Component {
     state = {
         items: {},
         order: {},
-        user: {}
+        user: null,
+        scroll: false,
+        mobile: null,
+        login: false
     }
 
     constructor(props) {
         super(props);
-        this.myRef = React.createRef();
+        this.about = React.createRef();
+        this.menu = React.createRef();
+        this.location = React.createRef();
+        this.contact = React.createRef();
     }
 
+
+
+
     componentDidMount() {
+        this.resize();
+
+        window.addEventListener('scroll', this.scroll);
+        window.addEventListener('resize', this.resize);
+
         const localStorageRef = localStorage.getItem('order');
+        const user = localStorage.getItem('uid');
+
+        if (user) {
+            let expiresAt = JSON.parse(localStorage.getItem('expires_at'));
+            if (new Date().getTime() < expiresAt) {
+                localStorage.removeItem('uid');
+                localStorage.removeItem('expires_at');
+            } else {
+                this.setState({ user: user });
+            }
+
+        }
 
         if (localStorageRef) {
             this.setState({ order: JSON.parse(localStorageRef) });
@@ -42,8 +69,27 @@ export default class RouterComp extends Component {
 
     componentWillUnmount() {
         base.removeBinding(this.ref);
+        window.removeEventListener('scroll', this.scroll);
+        window.removeEventListener('resize', this.resize);
     }
 
+    scroll = (e) => {
+
+        if (!document.querySelector('.header')) return;
+        if (window.pageYOffset > document.querySelector('.header').clientHeight - 69) {
+            this.setState({ scroll: true })
+        } else {
+            this.setState({ scroll: false })
+        }
+    }
+
+    resize = (e) => {
+        if (window.outerWidth < 768) {
+            this.setState({ mobile: true })
+        } else {
+            this.setState({ mobile: false })
+        }
+    }
 
     addItem = item => {
 
@@ -90,14 +136,70 @@ export default class RouterComp extends Component {
         this.setState({ order });
     }
 
-    SignUp() {
-        firebase.auth().createUserWithEmailAndPassword(this.state.email, this.state.password).catch(function (error) {
-            // Handle Errors here.
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            alert(errorCode, errorMessage);
-        });
+    login = (loginState, email, password) => {
+
+        if (loginState) {
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then(data => {
+                    let expiresAt = JSON.stringify(86400 + new Date().getTime());
+                    console.log(expiresAt)
+                    localStorage.setItem('uid', data.user.uid);
+                    localStorage.setItem('expires_at', expiresAt);
+                    this.toggleLogin();
+                })
+                .catch(function (error) {
+                    // Handle Errors here.
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
+                    console.log(errorCode, errorMessage);
+                    if (errorCode === 'auth/wrong-password') {
+                        alert('Wrong password.');
+                    } else {
+                        alert(errorMessage);
+                    }
+                    console.log(error);
+                });
+        } else {
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then(data => {
+                    console.group(data);
+                })
+                .catch(function (error) {
+                    // Handle Errors here.
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
+                    console.log(errorCode, errorMessage);
+                    if (errorCode == 'auth/weak-password') {
+                        alert('The password is too weak.');
+                    } else {
+                        alert(errorMessage);
+                    }
+                    console.log(error);
+                });
+        }
     }
+
+    scopeCheck = async () => {
+
+        const store = await base.fetch('/admin', { context: this });
+
+        return this.state.user === store;
+    }
+
+    scrollToTop = () => window.scrollTo(0, 0);
+
+    scrollToMyAbout = () => window.scrollTo(0, this.about.current.offsetTop - 78);
+
+    scrollToMyMenu = () => window.scrollTo(0, this.menu.current.offsetTop - 78);
+
+    scrollToMyLocation = () => window.scrollTo(0, this.location.current.offsetTop - 78);
+
+    scrollToMyContact = () => window.scrollTo(0, this.contact.current.offsetTop - 78);
+
+    toggleLogin = () => {
+        this.setState({ login: !this.state.login });
+    }
+
 
     render() {
         // const authenticate = new firebase.auth.EmailAuthProvider.credential();
@@ -108,19 +210,29 @@ export default class RouterComp extends Component {
             <BrowserRouter>
                 <Switch>
                     <>
-                        <Nav />
+                        <Nav scroll={this.state.scroll} mobile={this.state.mobile}
+                            scrollToTop={this.scrollToTop}
+                            scrollToMyMenu={this.scrollToMyMenu}
+                            scrollToMyAbout={this.scrollToMyAbout}
+                            scrollToMyLocation={this.scrollToMyLocation}
+                            scrollToMyContact={this.scrollToMyContact}
+                            toggleLogin={this.toggleLogin}
+                            user={this.state.user}
+                            scopeCheck={this.scopeCheck}
+                        />
                         <Route exact path='/' render={props => {
-                            return <App items={this.state.items} order={this.state.order} addToCart={this.addToCart} deleteFromCart={this.deleteFromCart} />
+                            return <App about={this.about} menu={this.menu} location={this.location} contact={this.contact} mobile={this.state.mobile} items={this.state.items} order={this.state.order} addToCart={this.addToCart} deleteFromCart={this.deleteFromCart} />
                         }
                         } />
 
                         <Route exact path='/inventory' render={props => {
                             return <Inventory items={this.state.items} addItem={this.addItem} updateItem={this.updateItem} deleteItem={this.deleteItem} />
                         }} />
-
-                        <Route exact path='/login' render={props => {
-                            return <Login />
-                        }} />
+                        <Login
+                            userLogin={this.login}
+                            toggleLogin={this.toggleLogin}
+                            open={this.state.login} />
+                        <Footer />
                     </>
                 </Switch>
             </BrowserRouter>
