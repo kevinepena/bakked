@@ -18,7 +18,8 @@ export default class RouterComp extends Component {
         user: null,
         scroll: false,
         mobile: null,
-        login: false
+        login: false,
+        loading: false
     }
 
     constructor(props) {
@@ -35,6 +36,8 @@ export default class RouterComp extends Component {
     componentDidMount() {
         this.resize();
 
+        console.log(firebase.auth().currentUser);
+        console.log(firebase);
         window.addEventListener('scroll', this.scroll);
         window.addEventListener('resize', this.resize);
 
@@ -44,10 +47,10 @@ export default class RouterComp extends Component {
         if (user) {
             let expiresAt = JSON.parse(localStorage.getItem('expires_at'));
             if (new Date().getTime() < expiresAt) {
+                this.setState({ user: user });
+            } else {
                 localStorage.removeItem('uid');
                 localStorage.removeItem('expires_at');
-            } else {
-                this.setState({ user: user });
             }
 
         }
@@ -138,52 +141,67 @@ export default class RouterComp extends Component {
 
     login = (loginState, email, password) => {
 
-        if (loginState) {
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .then(data => {
-                    let expiresAt = JSON.stringify(86400 + new Date().getTime());
-                    console.log(expiresAt)
-                    localStorage.setItem('uid', data.user.uid);
-                    localStorage.setItem('expires_at', expiresAt);
-                    this.toggleLogin();
-                })
-                .catch(function (error) {
-                    // Handle Errors here.
-                    var errorCode = error.code;
-                    var errorMessage = error.message;
-                    console.log(errorCode, errorMessage);
-                    if (errorCode === 'auth/wrong-password') {
-                        alert('Wrong password.');
-                    } else {
-                        alert(errorMessage);
-                    }
-                    console.log(error);
-                });
-        } else {
-            firebase.auth().createUserWithEmailAndPassword(email, password)
-                .then(data => {
-                    console.group(data);
-                })
-                .catch(function (error) {
-                    // Handle Errors here.
-                    var errorCode = error.code;
-                    var errorMessage = error.message;
-                    console.log(errorCode, errorMessage);
-                    if (errorCode == 'auth/weak-password') {
-                        alert('The password is too weak.');
-                    } else {
-                        alert(errorMessage);
-                    }
-                    console.log(error);
-                });
-        }
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)
+            .then(() => {
+                // Existing and future Auth states are now persisted in the current
+                // session only. Closing the window would clear any existing state even
+                // if a user forgets to sign out.
+                // New sign-in will be persisted with session persistence.
+                if (loginState) {
+                    return firebase.auth().signInWithEmailAndPassword(email, password)
+                        .then(data => {
+                            let expiresAt = JSON.stringify(86400 + new Date().getTime());
+                            localStorage.setItem('uid', data.user.uid);
+                            localStorage.setItem('expires_at', expiresAt);
+                            this.setState({ user: data.user.uid })
+                            this.toggleLogin();
+                        })
+                        .catch(function (error) {
+                            // Handle Errors here.
+                            var errorCode = error.code;
+                            var errorMessage = error.message;
+                            console.log(errorCode, errorMessage);
+                            if (errorCode === 'auth/wrong-password') {
+                                alert('Wrong password.');
+                            } else {
+                                alert(errorMessage);
+                            }
+                            console.log(error);
+                        });
+                } else {
+                    return firebase.auth().createUserWithEmailAndPassword(email, password)
+                        .then(data => {
+                            console.group(data);
+                        })
+                        .catch(function (error) {
+                            // Handle Errors here.
+                            var errorCode = error.code;
+                            var errorMessage = error.message;
+                            console.log(errorCode, errorMessage);
+                            if (errorCode === 'auth/weak-password') {
+                                alert('The password is too weak.');
+                            } else {
+                                alert(errorMessage);
+                            }
+                            console.log(error);
+                        });
+                }
+            })
+            .catch(function (error) {
+                var errorMessage = error.message;
+                alert(errorMessage);
+            });
+
     }
 
-    scopeCheck = async () => {
+    scopeCheck = async (user) => {
 
         const store = await base.fetch('/admin', { context: this });
 
-        return this.state.user === store;
+        console.log(store.includes(user))
+        
+
+        return store.includes(user);
     }
 
     scrollToTop = () => window.scrollTo(0, 0);
@@ -200,6 +218,12 @@ export default class RouterComp extends Component {
         this.setState({ login: !this.state.login });
     }
 
+    logout = () => {
+        firebase.auth().signOut();
+        localStorage.removeItem('uid');
+        localStorage.removeItem('expires_at');
+        this.setState({ user: null })
+    }
 
     render() {
         // const authenticate = new firebase.auth.EmailAuthProvider.credential();
@@ -217,6 +241,7 @@ export default class RouterComp extends Component {
                             scrollToMyLocation={this.scrollToMyLocation}
                             scrollToMyContact={this.scrollToMyContact}
                             toggleLogin={this.toggleLogin}
+                            logout={this.logout}
                             user={this.state.user}
                             scopeCheck={this.scopeCheck}
                         />

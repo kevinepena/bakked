@@ -557,6 +557,7 @@ header .context h3:after {
   box-shadow: 0 5px 5px rgba(0,0,0,0.1);
   padding-right: 2rem;
   transition: all 0.3s;
+  cursor: pointer;
 }
 .nav .top {
   z-index: 551;
@@ -580,28 +581,32 @@ header .context h3:after {
   display: grid;
   grid-auto-flow: column;
 }
-.nav li button.nav-button {
+.nav li .nav-button {
   text-transform: uppercase;
   background: none;
   font-weight: 500;
   align-content: center;
-  cursor: pointer;
   text-align: end;
   height: 100%;
-  transition: color 0.2s;
+  transition: color 0.3s;
   border: none;
   width: 100%;
 
+}
+.nav li a {
+  font-size: 1.5rem;
+  font-weight: 500;
 }
   .nav li button:after {
     background: none;
   }
 
-.nav.scroll li button {
+.nav.scroll li button,
+.nav.scroll li a {
   color: #fff;
 }
-.nav li button:hover,
-.nav li button:focus {
+.nav li a:hover,
+.nav li button:hover {
   color: #FFC66F;
   outline: 0;
 }
@@ -857,6 +862,50 @@ input[type=submit].twitter:after {
 .login-form button:after {
   background-color: #FFC66F;
 }
+.loader {
+  position: absolute;
+  top: 50%;
+  left: 48%;
+}
+
+.line {
+  animation: expand 1s ease-in-out infinite;
+  border-radius: 10px;
+  display: inline-block;
+  transform-origin: center center;
+  margin: 0 3px;
+  width: 1px;
+  height: 25px;
+}
+
+.line:nth-child(1) {
+  background: #27ae60;
+}
+
+.line:nth-child(2) {
+  animation-delay: 180ms;
+  background: #f1c40f;
+}
+
+.line:nth-child(3) {
+  animation-delay: 360ms;
+  background: #e67e22;
+}
+
+.line:nth-child(4) {
+  animation-delay: 540ms;
+  background: #2980b9;
+}
+
+@keyframes expand {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(2);
+  }
+}
+
 
 .none {
   display: none !important;

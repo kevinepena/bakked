@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import firebase from 'firebase';
+import { firebaseApp } from '../base';
 
 export default class Login extends Component {
 
