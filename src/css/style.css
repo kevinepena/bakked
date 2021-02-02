@@ -326,6 +326,7 @@ ul .top h1:after {
   display: grid;
   max-width: 1500px;
   grid-gap: 5rem;
+  margin: 0 auto;
 }
 .bakked-order-menu  {
   margin: 0 auto;
