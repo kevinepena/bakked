@@ -19,6 +19,9 @@
     "styled-components": "^4.2.0",
     "stylus": "0.54.5"
   },
+  "engines": {
+    "node": "10.x"
+  },
   "scripts": {
     "dev": "react-scripts start",
     "start": "react-scripts start",
